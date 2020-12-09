@@ -21,50 +21,56 @@ public class App extends Application {
 	@Override
 	public void start(Stage stage) {
 
-		VBox root = new VBox(5);
 		Label textLbl = new Label("Text:");
 		TextArea text = new TextArea();
-
 		text.setPrefRowCount(10);
 		text.setPrefColumnCount(20);
 		text.setWrapText(true);
-
 		// Button to print the TextArea node
-		Button printTextBtn = new Button("Print Text");
-		printTextBtn.setOnAction(e -> print(text));
+		Button pageSetupBtn = new Button("Page Setup and Print");
+		pageSetupBtn.setOnAction(e -> pageSetup(text, stage));
 
 		// Button to print the entire scene
-		Button printSceneBtn = new Button("Print Scene");
-		printSceneBtn.setOnAction(e -> print(root));
-
+		Button printSetupBtn = new Button("Print Setup and Print");
+		printSetupBtn.setOnAction(e -> printSetup(text, stage));
 		HBox jobStatusBox = new HBox(5, new Label("Print Job Status:"), jobStatus);
-		HBox buttonBox = new HBox(5, printTextBtn, printSceneBtn);
-		root.getChildren().addAll(textLbl, text, jobStatusBox, buttonBox);
+		HBox buttonBox = new HBox(5, pageSetupBtn, printSetupBtn);
+		VBox root = new VBox(5, textLbl, text, jobStatusBox, buttonBox);
 		Scene scene = new Scene(root);
 		stage.setScene(scene);
-		stage.setTitle("Printing Nodes");
+		stage.setTitle("Showing Print Dialogs");
 		stage.show();
 	}
 
-	private void print(Node node) {
-		jobStatus.textProperty().unbind();
-		jobStatus.setText("Creating a printer job...");
-		// Create a printer job for the default printer
+	private void pageSetup(Node node, Stage owner) {
 		PrinterJob job = PrinterJob.createPrinterJob();
-		if (job != null) {
-			// Show the printer job status
-			jobStatus.textProperty().bind(job.jobStatusProperty().asString());
-			// Print the node
-			boolean printed = job.printPage(node);
-			if (printed) {
-				// End the printer job
-				job.endJob();
-			} else {
-				jobStatus.textProperty().unbind();
-				jobStatus.setText("Printing failed.");
-			}
-		} else {
-			jobStatus.setText("Could not create a printer job.");
+		if (job == null) {
+			return;
+		}
+		// Show the page setup dialog
+		boolean proceed = job.showPageSetupDialog(owner);
+		if (proceed) {
+			print(job, node);
+		}
+	}
+
+	private void printSetup(Node node, Stage owner) {
+		PrinterJob job = PrinterJob.createPrinterJob();
+		if (job == null) {
+			return;
+		}
+		// Show the print setup dialog
+		boolean proceed = job.showPrintDialog(owner);
+		if (proceed) {
+			print(job, node);
+		}
+	}
+
+	private void print(PrinterJob job, Node node) {
+		jobStatus.textProperty().bind(job.jobStatusProperty().asString());
+		boolean printed = job.printPage(node);
+		if (printed) {
+			job.endJob();
 		}
 	}
 
